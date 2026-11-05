@@ -1,0 +1,19 @@
+name: Matrix CI
+on: [push, pull_request]
+jobs:
+  build-test-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cmake g++ doxygen graphviz valgrind libgtest-dev
+      - run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --parallel
+      - run: ctest --test-dir build --verbose --output-on-failure
+      - run: valgrind --leak-check=full --error-exitcode=1 ./build/matrix_tests
+      - run: doxygen Doxyfile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/html
+      - run: docker build -t matrix-calculator .
+      - run: docker run --rm matrix-calculator
